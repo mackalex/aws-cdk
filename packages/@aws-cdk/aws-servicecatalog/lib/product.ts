@@ -23,6 +23,8 @@ export interface IProduct extends IResource {
    */
   readonly productId: string;
 
+  fileLocations?: [string, string][]
+
   /**
    * Associate Tag Options.
    * A TagOption is a key-value pair managed in AWS Service Catalog.
@@ -34,6 +36,7 @@ export interface IProduct extends IResource {
 abstract class ProductBase extends Resource implements IProduct {
   public abstract readonly productArn: string;
   public abstract readonly productId: string;
+  public fileLocation?: string[];
 
   public associateTagOptions(tagOptions: TagOptions) {
     AssociationManager.associateTagOptions(this, this.productId, tagOptions);
@@ -171,6 +174,7 @@ export abstract class Product extends ProductBase {
 export class CloudFormationProduct extends Product {
   public readonly productArn: string;
   public readonly productId: string;
+  public fileLocations?: [string, string][];
 
   constructor(scope: Construct, id: string, props: CloudFormationProductProps) {
     super(scope, id);
@@ -207,6 +211,7 @@ export class CloudFormationProduct extends Product {
     return props.productVersions.map(productVersion => {
       const template = productVersion.cloudFormationTemplate.bind(this);
       InputValidator.validateUrl(this.node.path, 'provisioning template url', template.httpUrl);
+      this.fileLocations = template.fileLocations;
       return {
         name: productVersion.productVersionName,
         description: productVersion.description,

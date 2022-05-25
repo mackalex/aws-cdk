@@ -21,16 +21,19 @@ export class ProductStack extends cdk.Stack {
   public readonly templateFile: string;
   private _templateUrl?: string;
   private _parentStack: cdk.Stack;
+  private _fileLocations: [string, string][];
 
   constructor(scope: Construct, id: string) {
     super(scope, id, {
-      synthesizer: new ProductStackSynthesizer(),
+      synthesizer: new ProductStackSynthesizer(findParentStack(scope)),
     });
 
     this._parentStack = findParentStack(scope);
 
     // this is the file name of the synthesized template file within the cloud assembly
     this.templateFile = `${cdk.Names.uniqueId(this)}.product.template.json`;
+
+    this._fileLocations = (this.synthesizer as ProductStackSynthesizer).getFileLocations();
   }
 
   /**
@@ -61,6 +64,13 @@ export class ProductStack extends cdk.Stack {
     }).httpUrl;
 
     fs.writeFileSync(path.join(session.assembly.outdir, this.templateFile), cfn);
+  }
+
+  /**
+   * Return file locations for assets in ProductStack
+   */
+  public getFileLocations(): [string, string][] {
+    return this._fileLocations;
   }
 }
 

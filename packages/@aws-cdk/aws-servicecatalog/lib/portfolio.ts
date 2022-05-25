@@ -1,4 +1,6 @@
+import { AccountPrincipal } from '@aws-cdk/aws-iam';
 import * as iam from '@aws-cdk/aws-iam';
+import * as s3 from '@aws-cdk/aws-s3';
 import * as sns from '@aws-cdk/aws-sns';
 import * as cdk from '@aws-cdk/core';
 import { MessageLanguage } from './common';
@@ -158,6 +160,7 @@ abstract class PortfolioBase extends cdk.Resource implements IPortfolio {
   public abstract readonly portfolioArn: string;
   public abstract readonly portfolioId: string;
   private readonly associatedPrincipals: Set<string> = new Set();
+  public fileLocations?: [string, string][];
 
   public giveAccessToRole(role: iam.IRole): void {
     this.associatePrincipal(role.roleArn, role.node.addr);
@@ -172,11 +175,30 @@ abstract class PortfolioBase extends cdk.Resource implements IPortfolio {
   }
 
   public addProduct(product: IProduct): void {
+    this.fileLocations = product.fileLocations;
     AssociationManager.associateProductWithPortfolio(this, product, undefined);
   }
 
   public shareWithAccount(accountId: string, options: PortfolioShareOptions = {}): void {
     const hashId = this.generateUniqueHash(accountId);
+    console.log(this.fileLocations)
+    if (this.fileLocations) {
+      console.log("Inside of conditional: " + this.fileLocations[0][0]);
+      const assetBucket = s3.Bucket.fromBucketName(this, 'AssetBucket', this.fileLocations[0][0]);
+      const bucketPolicy = new s3.BucketPolicy(this, 'TestBucketPolicy', {
+        bucket: assetBucket,
+      });
+      var fileAssetArns: string[];
+      fileAssetArns = [];
+      this.fileLocations.forEach(function (fileLocation) {
+        fileAssetArns.push(assetBucket.arnForObjects(fileLocation[1]));
+      });
+      bucketPolicy.document.addStatements(new iam.PolicyStatement({
+        actions: ['s3:GetObject'],
+        resources: fileAssetArns,
+        principals: [new iam.AccountPrincipal(accountId)],
+      }));
+    }
     new CfnPortfolioShare(this, `PortfolioShare${hashId}`, {
       portfolioId: this.portfolioId,
       accountId: accountId,
