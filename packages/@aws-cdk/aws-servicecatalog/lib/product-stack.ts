@@ -57,7 +57,7 @@ export class ProductStack extends cdk.Stack {
   }
 
   public addFileAssetToParentSynthesizer(asset: cdk.FileAssetSource): cdk.FileAssetLocation {
-    const bucket = Bucket.fromBucketName(this._parentStack, 'SharableAssetBucket_' + asset.fileName, 'sc-sharable-asset-deployment-bucket');
+    const bucket = Bucket.fromBucketName(this._parentStack, 'SharableAssetBucket_' + asset.fileName, 'sc-sharable-asset-deployment-bucket-alex');
     const s3Prefix = 'assets';
 
     //These values are hardcoded due to BucketDeployment unzipping asset
@@ -68,6 +68,10 @@ export class ProductStack extends cdk.Stack {
       destinationBucket: bucket,
       destinationKeyPrefix: s3Prefix,
       unzipFile: false,
+      // This "prune" keeps files in the bucket from previous bucket deployments.
+      // This is beneficial in our usecase of multiple file assets per SC product.
+      // TODO: May remove these comments
+      prune: false,
     });
 
     const bucketName = bucket.bucketName;
